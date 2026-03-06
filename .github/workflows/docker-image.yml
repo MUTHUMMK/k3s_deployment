@@ -39,7 +39,7 @@ jobs:
       run: |
         # Clone repository using HTTPS URL without token
         git clone https://${{ secrets.USERNAME }}:${{ secrets.CA_TK }}@github.com/${{ secrets.USERNAME }}/argocd.git
-        cd argocd
+        cd argocd/argocd
         sed -i "s|image: .*|image: $IMAGE_NAME:${{ steps.vars.outputs.TAG }}|g" deploy.yml
 
     - name: Commit Updated Manifest
