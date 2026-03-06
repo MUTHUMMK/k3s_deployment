@@ -1,0 +1,57 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+
+jobs:
+  build:
+    runs-on: deploy
+
+    steps:
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Get Commit SHA
+      id: vars
+      run: echo "TAG=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build Docker Image
+      run: |
+        docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} .
+
+    - name: Push Docker Image
+      run: |
+        docker push $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
+
+    - name: Update Kubernetes Deploy YAML
+      run: |
+        # Clone repository using HTTPS URL without token
+        git clone https://${{ secrets.USERNAME }}:${{ secrets.CA_TK }}@github.com/${{ secrets.USERNAME }}/argocd.git
+        sudo chmod -R 777 .
+        cd argocd/argocd
+        sed -i "s|image: .*|image: $IMAGE_NAME:${{ steps.vars.outputs.TAG }}|g" deploy.yml
+    - name: Debug files
+      run: |
+       pwd
+       ls -R
+
+    - name: Commit Updated Manifest
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "actions@github.com"
+        cd argocd/argocd
+        git add deploy.yml
+        git commit -m "Update image tag to ${{ steps.vars.outputs.TAG }}"
+        git push
