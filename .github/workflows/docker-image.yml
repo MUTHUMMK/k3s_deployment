@@ -42,11 +42,16 @@ jobs:
         sudo chmod -R 777 .
         cd argocd/argocd
         sed -i "s|image: .*|image: $IMAGE_NAME:${{ steps.vars.outputs.TAG }}|g" deploy.yml
+    - name: Debug files
+      run: |
+       pwd
+       ls -R
 
     - name: Commit Updated Manifest
       run: |
         git config --global user.name "github-actions"
         git config --global user.email "actions@github.com"
-        git add deploy.yml
+        cd argocd/argocd
+        git add argocd/argocd/deploy.yml
         git commit -m "Update image tag to ${{ steps.vars.outputs.TAG }}"
         git push
